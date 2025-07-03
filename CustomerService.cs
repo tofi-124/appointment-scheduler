@@ -156,6 +156,15 @@ namespace SchedulingApp.Business
             if (string.IsNullOrWhiteSpace(customer.Address.Trim()))
                 throw new Exception(LocalizationHelper.Translate("RequiredFields"));
             
+            if (string.IsNullOrWhiteSpace(customer.City.Trim()))
+                throw new Exception("City is required and cannot be empty.");
+            
+            if (string.IsNullOrWhiteSpace(customer.Country.Trim()))
+                throw new Exception("Country is required and cannot be empty.");
+            
+            if (string.IsNullOrWhiteSpace(customer.PostalCode.Trim()))
+                throw new Exception("Postal code is required and cannot be empty.");
+            
             if (string.IsNullOrWhiteSpace(customer.Phone.Trim()))
                 throw new Exception(LocalizationHelper.Translate("RequiredFields"));
 
