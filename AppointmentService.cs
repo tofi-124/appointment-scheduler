@@ -114,6 +114,9 @@ namespace SchedulingApp.Business
                 var now = DateTime.Now;
                 var newId = GetNextAppointmentId();
 
+                var startInEastern = ConvertToEasternFromLocal(appointment.Start);
+                var endInEastern = ConvertToEasternFromLocal(appointment.End);
+
                 var query = @"
                     INSERT INTO appointment (appointmentId, customerId, userId, title, description, location, contact, type, url, start, end, createDate, createdBy, lastUpdate, lastUpdateBy)
                     VALUES (@appointmentId, @customerId, @userId, @title, @description, @location, @contact, @type, @url, @start, @end, @createDate, @createdBy, @lastUpdate, @lastUpdateBy)";
@@ -129,8 +132,8 @@ namespace SchedulingApp.Business
                     new MySqlParameter("@contact", appointment.Contact),
                     new MySqlParameter("@type", appointment.Type),
                     new MySqlParameter("@url", appointment.Url),
-                    new MySqlParameter("@start", appointment.Start),
-                    new MySqlParameter("@end", appointment.End),
+                    new MySqlParameter("@start", startInEastern),
+                    new MySqlParameter("@end", endInEastern),
                     new MySqlParameter("@createDate", now),
                     new MySqlParameter("@createdBy", currentUser),
                     new MySqlParameter("@lastUpdate", now),
@@ -155,6 +158,9 @@ namespace SchedulingApp.Business
                 var currentUser = SessionManager.CurrentUser?.UserName ?? "system";
                 var now = DateTime.Now;
 
+                var startInEastern = ConvertToEasternFromLocal(appointment.Start);
+                var endInEastern = ConvertToEasternFromLocal(appointment.End);
+
                 var query = @"
                     UPDATE appointment 
                     SET customerId = @customerId, userId = @userId, title = @title, description = @description, 
@@ -172,8 +178,8 @@ namespace SchedulingApp.Business
                     new MySqlParameter("@contact", appointment.Contact),
                     new MySqlParameter("@type", appointment.Type),
                     new MySqlParameter("@url", appointment.Url),
-                    new MySqlParameter("@start", appointment.Start),
-                    new MySqlParameter("@end", appointment.End),
+                    new MySqlParameter("@start", startInEastern),
+                    new MySqlParameter("@end", endInEastern),
                     new MySqlParameter("@lastUpdate", now),
                     new MySqlParameter("@lastUpdateBy", currentUser),
                     new MySqlParameter("@appointmentId", appointment.AppointmentId)
@@ -209,6 +215,10 @@ namespace SchedulingApp.Business
                 var appointments = new List<Appointment>();
                 var now = DateTime.Now;
                 var futureTime = now.AddMinutes(minutes);
+                
+                var easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+                var nowInEastern = TimeZoneInfo.ConvertTime(now, TimeZoneInfo.Local, easternZone);
+                var futureTimeInEastern = TimeZoneInfo.ConvertTime(futureTime, TimeZoneInfo.Local, easternZone);
 
                 var query = @"
                     SELECT a.*, c.customerName, u.userName
@@ -220,8 +230,8 @@ namespace SchedulingApp.Business
                 var parameters = new MySqlParameter[]
                 {
                     new MySqlParameter("@userId", userId),
-                    new MySqlParameter("@now", now),
-                    new MySqlParameter("@futureTime", futureTime)
+                    new MySqlParameter("@now", nowInEastern),
+                    new MySqlParameter("@futureTime", futureTimeInEastern)
                 };
 
                 var result = DatabaseConnection.ExecuteQuery(query, parameters);
@@ -239,8 +249,8 @@ namespace SchedulingApp.Business
                         Contact = row["contact"].ToString() ?? string.Empty,
                         Type = row["type"].ToString() ?? string.Empty,
                         Url = row["url"].ToString() ?? string.Empty,
-                        Start = Convert.ToDateTime(row["start"]),
-                        End = Convert.ToDateTime(row["end"]),
+                        Start = ConvertFromEasternToLocal(Convert.ToDateTime(row["start"])),
+                        End = ConvertFromEasternToLocal(Convert.ToDateTime(row["end"])),
                         CreateDate = Convert.ToDateTime(row["createDate"]),
                         CreatedBy = row["createdBy"].ToString() ?? string.Empty,
                         LastUpdate = Convert.ToDateTime(row["lastUpdate"]),
@@ -307,6 +317,127 @@ namespace SchedulingApp.Business
         {
             var maxId = DatabaseConnection.ExecuteScalar("SELECT COALESCE(MAX(appointmentId), 0) FROM appointment");
             return Convert.ToInt32(maxId) + 1;
+        }
+
+        // Time zone conversion methods for automatic adjustment based on user's time zone
+        public static DateTime ConvertFromUtcToLocal(DateTime utcDateTime)
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(utcDateTime, TimeZoneInfo.Local);
+        }
+
+        public static DateTime ConvertToUtcFromLocal(DateTime localDateTime)
+        {
+            return TimeZoneInfo.ConvertTimeToUtc(localDateTime, TimeZoneInfo.Local);
+        }
+
+        public static DateTime ConvertToEasternFromLocal(DateTime localDateTime)
+        {
+            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            return TimeZoneInfo.ConvertTime(localDateTime, TimeZoneInfo.Local, easternZone);
+        }
+
+        public static DateTime ConvertFromEasternToLocal(DateTime easternDateTime)
+        {
+            var easternZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+            return TimeZoneInfo.ConvertTime(easternDateTime, easternZone, TimeZoneInfo.Local);
+        }
+
+        // Get appointments with times converted to user's local time zone
+        public static List<Appointment> GetAllAppointmentsInLocalTime()
+        {
+            try
+            {
+                List<Appointment> appointmentList = new List<Appointment>();
+                string query = @"
+                    SELECT a.*, c.customerName, u.userName
+                    FROM appointment a
+                    INNER JOIN customer c ON a.customerId = c.customerId
+                    INNER JOIN user u ON a.userId = u.userId";
+
+                var result = DatabaseConnection.ExecuteQuery(query);
+
+                foreach (DataRow row in result.Rows)
+                {
+                    var appointment = new Appointment
+                    {
+                        AppointmentId = Convert.ToInt32(row["appointmentId"]),
+                        CustomerId = Convert.ToInt32(row["customerId"]),
+                        UserId = Convert.ToInt32(row["userId"]),
+                        Title = row["title"].ToString() ?? string.Empty,
+                        Description = row["description"].ToString() ?? string.Empty,
+                        Location = row["location"].ToString() ?? string.Empty,
+                        Contact = row["contact"].ToString() ?? string.Empty,
+                        Type = row["type"].ToString() ?? string.Empty,
+                        Url = row["url"].ToString() ?? string.Empty,
+                        Start = ConvertFromEasternToLocal(Convert.ToDateTime(row["start"])),
+                        End = ConvertFromEasternToLocal(Convert.ToDateTime(row["end"])),
+                        CreateDate = Convert.ToDateTime(row["createDate"]),
+                        CreatedBy = row["createdBy"].ToString() ?? string.Empty,
+                        LastUpdate = Convert.ToDateTime(row["lastUpdate"]),
+                        LastUpdateBy = row["lastUpdateBy"].ToString() ?? string.Empty,
+                        CustomerName = row["customerName"].ToString() ?? string.Empty,
+                        UserName = row["userName"].ToString() ?? string.Empty
+                    };
+                    appointmentList.Add(appointment);
+                }
+                return appointmentList;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting appointments: {ex.Message}");
+            }
+        }
+
+        public static List<Appointment> GetAppointmentsByDateInLocalTime(DateTime date)
+        {
+            try
+            {
+                List<Appointment> appointments = new List<Appointment>();
+                string query = @"
+                    SELECT a.*, c.customerName, u.userName
+                    FROM appointment a
+                    INNER JOIN customer c ON a.customerId = c.customerId
+                    INNER JOIN user u ON a.userId = u.userId
+                    WHERE DATE(start) = @date";
+
+                var parameters = new MySqlParameter[]
+                {
+                    new MySqlParameter("@date", date.Date)
+                };
+
+                var result = DatabaseConnection.ExecuteQuery(query, parameters);
+
+                foreach (DataRow row in result.Rows)
+                {
+                    var appointment = new Appointment
+                    {
+                        AppointmentId = Convert.ToInt32(row["appointmentId"]),
+                        CustomerId = Convert.ToInt32(row["customerId"]),
+                        UserId = Convert.ToInt32(row["userId"]),
+                        Title = row["title"].ToString() ?? string.Empty,
+                        Description = row["description"].ToString() ?? string.Empty,
+                        Location = row["location"].ToString() ?? string.Empty,
+                        Contact = row["contact"].ToString() ?? string.Empty,
+                        Type = row["type"].ToString() ?? string.Empty,
+                        Url = row["url"].ToString() ?? string.Empty,
+                        // Convert database times (assumed to be Eastern) to user's local time
+                        Start = ConvertFromEasternToLocal(Convert.ToDateTime(row["start"])),
+                        End = ConvertFromEasternToLocal(Convert.ToDateTime(row["end"])),
+                        CreateDate = Convert.ToDateTime(row["createDate"]),
+                        CreatedBy = row["createdBy"].ToString() ?? string.Empty,
+                        LastUpdate = Convert.ToDateTime(row["lastUpdate"]),
+                        LastUpdateBy = row["lastUpdateBy"].ToString() ?? string.Empty,
+                        CustomerName = row["customerName"].ToString() ?? string.Empty,
+                        UserName = row["userName"].ToString() ?? string.Empty
+                    };
+                    appointments.Add(appointment);
+                }
+                return appointments;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Error getting appointments by date: {ex.Message}");
+            }
         }
     }
 }

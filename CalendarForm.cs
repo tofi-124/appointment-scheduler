@@ -30,7 +30,7 @@ namespace SchedulingApp
         {
             try
             {
-                var appointments = AppointmentService.GetAppointmentsByDate(selectedDate);
+                var appointments = AppointmentService.GetAppointmentsByDateInLocalTime(selectedDate);
                 
                 dgvDailyAppointments.DataSource = appointments.Select(a => new
                 {
@@ -38,10 +38,11 @@ namespace SchedulingApp
                     a.Title,
                     a.CustomerName,
                     a.Type,
-                    a.Location
+                    a.Location,
+                    TimeZone = TimeZoneInfo.Local.DisplayName // Show current time zone
                 }).ToList();
 
-                lblSelectedDate.Text = $"Appointments for {selectedDate:dddd, MMMM d, yyyy}";
+                lblSelectedDate.Text = $"Appointments for {selectedDate:dddd, MMMM d, yyyy} ({TimeZoneInfo.Local.DisplayName})";
             }
             catch (Exception ex)
             {

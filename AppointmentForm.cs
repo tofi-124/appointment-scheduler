@@ -71,7 +71,7 @@ namespace SchedulingApp
         {
             try
             {
-                var appointments = AppointmentService.GetAllAppointments();
+                var appointments = AppointmentService.GetAllAppointmentsInLocalTime();
                 dgvAppointments.DataSource = appointments.Select(a => new
                 {
                     a.AppointmentId,
@@ -81,7 +81,8 @@ namespace SchedulingApp
                     a.Type,
                     Start = a.Start.ToString("yyyy-MM-dd HH:mm"),
                     End = a.End.ToString("yyyy-MM-dd HH:mm"),
-                    a.Location
+                    a.Location,
+                    TimeZone = $"({TimeZoneInfo.Local.DisplayName})" // Show current time zone
                 }).ToList();
 
                 dgvAppointments.Columns["AppointmentId"].Visible = false;
@@ -101,7 +102,8 @@ namespace SchedulingApp
                 
                 try
                 {
-                    var appointments = AppointmentService.GetAllAppointments();
+                    // Use the time zone-aware method to get appointments in local time
+                    var appointments = AppointmentService.GetAllAppointmentsInLocalTime();
                     selectedAppointment = appointments.FirstOrDefault(a => a.AppointmentId == appointmentId);
                     
                     if (selectedAppointment != null)
