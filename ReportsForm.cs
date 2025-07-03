@@ -25,7 +25,7 @@ namespace SchedulingApp
         {
             try
             {
-                var appointments = AppointmentService.GetAllAppointments();
+                var appointments = AppointmentService.GetAllAppointmentsInLocalTime();
                 
                 var typesByMonth = appointments
                     .GroupBy(a => new { Month = a.Start.ToString("yyyy-MM"), a.Type })
@@ -52,21 +52,24 @@ namespace SchedulingApp
         {
             try
             {
-                var appointments = AppointmentService.GetAllAppointments();
+                var appointments = AppointmentService.GetAllAppointmentsInLocalTime();
                 
                 var userSchedules = appointments
-                    .GroupBy(a => a.UserName)
-                    .Select(g => new 
+                    .SelectMany(a => new[] { a })  // Lambda expression to flatten the collection
+                    .Select(a => new 
                     { 
-                        UserName = g.Key,
-                        TotalAppointments = g.Count(),
-                        UpcomingAppointments = g.Count(a => a.Start > DateTime.Now),
-                        NextAppointment = g.Where(a => a.Start > DateTime.Now)
-                                          .OrderBy(a => a.Start)
-                                          .Select(a => a.Start.ToString("yyyy-MM-dd HH:mm"))
-                                          .FirstOrDefault() ?? "None"
+                        UserName = a.UserName,
+                        AppointmentTitle = a.Title,
+                        CustomerName = a.CustomerName,
+                        AppointmentDate = a.Start.ToString("yyyy-MM-dd"),
+                        StartTime = a.Start.ToString("HH:mm"),
+                        EndTime = a.End.ToString("HH:mm"),
+                        Type = a.Type,
+                        Location = a.Location
                     })
                     .OrderBy(x => x.UserName)
+                    .ThenBy(x => x.AppointmentDate)
+                    .ThenBy(x => x.StartTime)
                     .ToList();
 
                 dgvReport.DataSource = userSchedules;
@@ -82,7 +85,7 @@ namespace SchedulingApp
         {
             try
             {
-                var appointments = AppointmentService.GetAllAppointments();
+                var appointments = AppointmentService.GetAllAppointmentsInLocalTime();
                 var customers = CustomerService.GetAllCustomers();
                 
                 var customerSummary = customers
