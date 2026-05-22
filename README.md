@@ -1,82 +1,89 @@
 # Appointment Scheduler
 
-Appointment Scheduler is a Windows desktop application built with C#, WinForms, and MySQL for managing customers, appointments, calendar views, and reporting workflows. The project showcases business-rule validation, time zone aware scheduling, localization, and a service-driven structure in a practical desktop CRUD application.
+Appointment Scheduler is a Windows desktop scheduling system built with C#, WinForms, and MySQL. It manages customers, appointments, calendar views, and reports while enforcing real scheduling constraints such as business hours, appointment conflicts, time zone conversion, and localized login flows.
 
-## Overview
+## Project Snapshot
 
-This application supports a complete scheduling workflow from login through reporting. Users can manage customer records, create and update appointments, review schedules in local time, and generate summary reports from live relational data.
+- Platform: Windows desktop
+- Framework: .NET 8 WinForms
+- Data store: MySQL
+- Focus areas: business-rule validation, time zone aware scheduling, localization, reporting
 
-## Technical Highlights
+## Why This Project
 
-- Multi-form WinForms application with a clear separation between UI, services, and models
-- Customer and appointment CRUD operations backed by MySQL
-- Business-hours enforcement for appointments scheduled between 9:00 AM and 5:00 PM Eastern Time, Monday through Friday
-- Appointment overlap detection before inserts and updates are committed
+Scheduling software becomes unreliable when time zones, overlapping appointments, and fixed business-hour rules are handled inconsistently. This project was built to address those problems with a validation-first workflow and a service layer that keeps scheduling rules separate from the UI.
+
+## Feature Highlights
+
+- Customer and appointment CRUD workflows backed by MySQL
 - Automatic English and Spanish login experience based on the user's system culture
-- Upcoming appointment reminders during login
-- Calendar view that displays appointments in the user's local time zone
-- LINQ-powered reports for appointment volume, user schedules, and customer activity
+- Appointment reminders for meetings starting within 15 minutes
+- Calendar view that presents appointments in the user's local time zone
+- LINQ-based reporting for appointment volume, user schedules, and customer activity
 - Parameterized SQL queries throughout the data access layer
 
-## Core Workflows
+## Business Rules Implemented
 
-- Authenticate users and start a session-aware desktop workflow
-- Create, edit, and deactivate customer records
-- Manage appointments with business-rule validation
-- Convert appointment times between local time and Eastern Time for scheduling rules
-- Review daily appointments in a calendar interface
-- Generate reports for appointment types by month, schedules by user, and customer appointment summaries
-
-## Architecture
-
-### UI Layer
-
-- `LoginForm` handles authentication, localization, and upcoming appointment alerts
-- `MainForm` serves as the application hub for customers, appointments, calendar, and reports
-- `CustomerForm` manages customer CRUD workflows
-- `AppointmentForm` manages appointment CRUD workflows and local-time display
-- `CalendarForm` provides day-based schedule browsing
-- `ReportsForm` builds summary views from appointment and customer data
-
-### Service Layer
-
-- `AppointmentService` handles validation, overlap detection, time conversion, and appointment queries
-- `CustomerService` manages customer data plus related address, city, and country records
-- `UserService` validates users and loads active user records
-- `SessionManager` stores the current user and writes login history
-
-### Supporting Components
-
-- `DatabaseConnection` centralizes MySQL query execution
-- `LocalizationHelper` provides English and Spanish translations
-- `Models.cs` defines the core domain models used across the application
+- Appointments must fall between 9:00 AM and 5:00 PM Eastern Time
+- Appointments must be scheduled Monday through Friday
+- Overlapping appointments are rejected before save
+- Appointment times are converted between local time and Eastern Time for scheduling logic
+- Login activity is recorded in a history file for traceability
 
 ## Tech Stack
 
 - C#
-- .NET 8 Windows Forms
+- .NET 8
+- Windows Forms
 - MySQL
 - MySql.Data
 - LINQ
 
-## Local Setup
+## Running Locally
 
-1. Use a Windows environment with Visual Studio or the .NET desktop tooling required for WinForms development.
-2. Create or restore the `client_schedule` MySQL database and its related tables.
-3. Update the database connection in `DatabaseConnection.cs` so it matches your local MySQL environment.
-4. Restore NuGet packages.
-5. Run the solution from Visual Studio.
+1. Clone the repository to a Windows machine with Visual Studio or .NET desktop tooling installed.
+2. Create or restore the `client_schedule` MySQL database.
+3. Make sure the database includes the `user`, `customer`, `appointment`, `address`, `city`, and `country` tables.
+4. Update the connection string in [DatabaseConnection.cs](DatabaseConnection.cs) to match your local MySQL environment.
+5. Restore NuGet packages.
+6. Open the solution in Visual Studio and run the application.
+
+If you prefer the .NET CLI, use:
+
+```bash
+dotnet restore
+dotnet build
+dotnet run
+```
+
+## Application Workflow
+
+1. Sign in through a localized login screen.
+2. Review upcoming appointments after authentication.
+3. Manage customer records used by the scheduling workflow.
+4. Create or update appointments with automatic validation.
+5. Browse daily schedules through the calendar view.
+6. Generate reports for monthly appointment types, user schedules, and customer summaries.
+
+## Code Highlights
+
+- [AppointmentService.cs](AppointmentService.cs) contains the core scheduling rules, overlap detection, and time zone conversion logic.
+- [CustomerService.cs](CustomerService.cs) handles customer CRUD plus related address, city, and country records.
+- [LocalizationHelper.cs](LocalizationHelper.cs) manages culture detection and translated UI text.
+- [ReportsForm.cs](ReportsForm.cs) uses LINQ to shape reporting data for the desktop UI.
+- [SessionManager.cs](SessionManager.cs) tracks the active user and writes login history.
 
 ## What This Project Demonstrates
 
-- Turning business constraints into validation logic
-- Handling scheduling rules across time zones
-- Structuring a desktop application around reusable service classes
-- Querying and shaping relational data for reporting with LINQ
-- Building a desktop user flow with multiple coordinated forms
+- Translating business rules into enforceable application logic
+- Structuring a desktop application around forms, services, and domain models
+- Working with relational data in a desktop CRUD workflow
+- Converting and presenting time-sensitive data across time zones
+- Building reporting features with LINQ over domain data
 
-## Notes
+## Future Improvements
 
-- This project targets Windows because it is built with WinForms.
-- Login activity is written to `Login_History.txt` in the application's output directory.
-- The repository reflects the original project implementation and is a good base for future refinements such as externalized configuration and stronger authentication practices.
+- Move database configuration out of source code and into environment-specific settings
+- Add automated tests for scheduling validation and reporting logic
+- Replace plain-text credential handling with stronger authentication practices
+- Add screenshots or a short demo to show the desktop workflows visually
